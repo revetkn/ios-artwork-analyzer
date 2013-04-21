@@ -32,121 +32,125 @@ import java.util.TreeSet;
  * @author <a href="http://revetkn.com">Mark Allen</a>
  */
 public class ApplicationArtwork {
-  private SortedSet<File> allImages = new TreeSet<File>();
-  private SortedMap<File, SortedSet<File>> allImagesAndReferencingFiles = new TreeMap<File, SortedSet<File>>();
-  private SortedMap<File, ImageMetrics> allImageMetrics = new TreeMap<File, ImageMetrics>();
-  private SortedSet<File> unreferencedImages = new TreeSet<File>();
-  private SortedSet<File> onlyProjectFileReferencedImages = new TreeSet<File>();
-  private SortedSet<File> retinaImages = new TreeSet<File>();
-  private SortedSet<File> nonretinaImages = new TreeSet<File>();
-  private SortedSet<File> nonretinaImagesMissingRetinaImages = new TreeSet<File>();
-  private SortedSet<File> retinaImagesMissingNonretinaImages = new TreeSet<File>();
-  private SortedSet<File> missingApplicationImages = new TreeSet<File>();
+  private SortedSet<File> allImageFiles = new TreeSet<File>();
+  private SortedMap<File, SortedSet<File>> allImageFilesAndReferencingFiles = new TreeMap<File, SortedSet<File>>();
+  private SortedMap<File, ImageMetrics> allImageFilesWithMetrics = new TreeMap<File, ImageMetrics>();
+  private SortedSet<File> unreferencedImageFiles = new TreeSet<File>();
+  private SortedSet<File> onlyProjectFileReferencedImageFiles = new TreeSet<File>();
+  private SortedSet<File> retinaImageFiles = new TreeSet<File>();
+  private SortedSet<File> nonretinaImageFiles = new TreeSet<File>();
+  private SortedSet<File> nonretinaImageFilesMissingRetinaImages = new TreeSet<File>();
+  private SortedSet<File> retinaImageFilesMissingNonretinaImages = new TreeSet<File>();
+  private SortedSet<File> missingApplicationImageFiles = new TreeSet<File>();
 
   /** Example: background~iphone.png */
-  private SortedSet<File> imagesWithIncorrectDeviceSuffix = new TreeSet<File>();
+  private SortedSet<File> imagesFilesWithIncorrectDeviceSuffix = new TreeSet<File>();
 
-  private SortedSet<File> incorrectlySizedRetinaImages = new TreeSet<File>();
+  private SortedSet<File> incorrectlySizedRetinaImageFiles = new TreeSet<File>();
 
-  private long sizeOfAllImagesInBytes;
+  private long sizeOfAllImagesFilesInBytes;
 
-  public SortedSet<File> getAllImages() {
-    return allImages;
+  public SortedSet<File> getAllImageFiles() {
+    return allImageFiles;
   }
 
-  public void setAllImages(SortedSet<File> allImages) {
-    this.allImages = allImages;
+  public void setAllImageFiles(SortedSet<File> allImageFiles) {
+    this.allImageFiles = allImageFiles;
   }
 
-  public SortedMap<File, SortedSet<File>> getAllImagesAndReferencingFiles() {
-    return allImagesAndReferencingFiles;
+  public SortedMap<File, SortedSet<File>> getAllImageFilesAndReferencingFiles() {
+    return allImageFilesAndReferencingFiles;
   }
 
-  public void setAllImagesAndReferencingFiles(SortedMap<File, SortedSet<File>> allImagesAndReferencingFiles) {
-    this.allImagesAndReferencingFiles = allImagesAndReferencingFiles;
+  public void setAllImageFilesAndReferencingFiles(SortedMap<File, SortedSet<File>> allImageFilesAndReferencingFiles) {
+    this.allImageFilesAndReferencingFiles = allImageFilesAndReferencingFiles;
   }
 
-  public SortedMap<File, ImageMetrics> getAllImageMetrics() {
-    return allImageMetrics;
+  public SortedMap<File, ImageMetrics> getAllImageFilesWithMetrics() {
+    return allImageFilesWithMetrics;
   }
 
-  public SortedSet<File> getUnreferencedImages() {
-    return unreferencedImages;
+  public void setAllImageFilesWithMetrics(SortedMap<File, ImageMetrics> allImageFilesWithMetrics) {
+    this.allImageFilesWithMetrics = allImageFilesWithMetrics;
   }
 
-  public void setUnreferencedImages(SortedSet<File> unreferencedImages) {
-    this.unreferencedImages = unreferencedImages;
+  public SortedSet<File> getUnreferencedImageFiles() {
+    return unreferencedImageFiles;
   }
 
-  public SortedSet<File> getOnlyProjectFileReferencedImages() {
-    return onlyProjectFileReferencedImages;
+  public void setUnreferencedImageFiles(SortedSet<File> unreferencedImageFiles) {
+    this.unreferencedImageFiles = unreferencedImageFiles;
   }
 
-  public void setOnlyProjectFileReferencedImages(SortedSet<File> onlyProjectFileReferencedImages) {
-    this.onlyProjectFileReferencedImages = onlyProjectFileReferencedImages;
+  public SortedSet<File> getOnlyProjectFileReferencedImageFiles() {
+    return onlyProjectFileReferencedImageFiles;
   }
 
-  public SortedSet<File> getRetinaImages() {
-    return retinaImages;
+  public void setOnlyProjectFileReferencedImageFiles(SortedSet<File> onlyProjectFileReferencedImageFiles) {
+    this.onlyProjectFileReferencedImageFiles = onlyProjectFileReferencedImageFiles;
   }
 
-  public void setRetinaImages(SortedSet<File> retinaImages) {
-    this.retinaImages = retinaImages;
+  public SortedSet<File> getRetinaImageFiles() {
+    return retinaImageFiles;
   }
 
-  public SortedSet<File> getNonretinaImages() {
-    return nonretinaImages;
+  public void setRetinaImageFiles(SortedSet<File> retinaImageFiles) {
+    this.retinaImageFiles = retinaImageFiles;
   }
 
-  public void setNonretinaImages(SortedSet<File> nonretinaImages) {
-    this.nonretinaImages = nonretinaImages;
+  public SortedSet<File> getNonretinaImageFiles() {
+    return nonretinaImageFiles;
   }
 
-  public SortedSet<File> getNonretinaImagesMissingRetinaImages() {
-    return nonretinaImagesMissingRetinaImages;
+  public void setNonretinaImageFiles(SortedSet<File> nonretinaImageFiles) {
+    this.nonretinaImageFiles = nonretinaImageFiles;
   }
 
-  public void setNonretinaImagesMissingRetinaImages(SortedSet<File> nonretinaImagesMissingRetinaImages) {
-    this.nonretinaImagesMissingRetinaImages = nonretinaImagesMissingRetinaImages;
+  public SortedSet<File> getNonretinaImageFilesMissingRetinaImages() {
+    return nonretinaImageFilesMissingRetinaImages;
   }
 
-  public SortedSet<File> getRetinaImagesMissingNonretinaImages() {
-    return retinaImagesMissingNonretinaImages;
+  public void setNonretinaImageFilesMissingRetinaImages(SortedSet<File> nonretinaImageFilesMissingRetinaImages) {
+    this.nonretinaImageFilesMissingRetinaImages = nonretinaImageFilesMissingRetinaImages;
   }
 
-  public void setRetinaImagesMissingNonretinaImages(SortedSet<File> retinaImagesMissingNonretinaImages) {
-    this.retinaImagesMissingNonretinaImages = retinaImagesMissingNonretinaImages;
+  public SortedSet<File> getRetinaImageFilesMissingNonretinaImages() {
+    return retinaImageFilesMissingNonretinaImages;
   }
 
-  public SortedSet<File> getMissingApplicationImages() {
-    return missingApplicationImages;
+  public void setRetinaImageFilesMissingNonretinaImages(SortedSet<File> retinaImageFilesMissingNonretinaImages) {
+    this.retinaImageFilesMissingNonretinaImages = retinaImageFilesMissingNonretinaImages;
   }
 
-  public void setMissingApplicationImages(SortedSet<File> missingApplicationImages) {
-    this.missingApplicationImages = missingApplicationImages;
+  public SortedSet<File> getMissingApplicationImageFiles() {
+    return missingApplicationImageFiles;
   }
 
-  public SortedSet<File> getImagesWithIncorrectDeviceSuffix() {
-    return imagesWithIncorrectDeviceSuffix;
+  public void setMissingApplicationImageFiles(SortedSet<File> missingApplicationImageFiles) {
+    this.missingApplicationImageFiles = missingApplicationImageFiles;
   }
 
-  public void setImagesWithIncorrectDeviceSuffix(SortedSet<File> imagesWithIncorrectDeviceSuffix) {
-    this.imagesWithIncorrectDeviceSuffix = imagesWithIncorrectDeviceSuffix;
+  public SortedSet<File> getImagesFilesWithIncorrectDeviceSuffix() {
+    return imagesFilesWithIncorrectDeviceSuffix;
   }
 
-  public SortedSet<File> getIncorrectlySizedRetinaImages() {
-    return incorrectlySizedRetinaImages;
+  public void setImagesFilesWithIncorrectDeviceSuffix(SortedSet<File> imagesFilesWithIncorrectDeviceSuffix) {
+    this.imagesFilesWithIncorrectDeviceSuffix = imagesFilesWithIncorrectDeviceSuffix;
   }
 
-  public void setIncorrectlySizedRetinaImages(SortedSet<File> incorrectlySizedRetinaImages) {
-    this.incorrectlySizedRetinaImages = incorrectlySizedRetinaImages;
+  public SortedSet<File> getIncorrectlySizedRetinaImageFiles() {
+    return incorrectlySizedRetinaImageFiles;
   }
 
-  public long getSizeOfAllImagesInBytes() {
-    return sizeOfAllImagesInBytes;
+  public void setIncorrectlySizedRetinaImageFiles(SortedSet<File> incorrectlySizedRetinaImageFiles) {
+    this.incorrectlySizedRetinaImageFiles = incorrectlySizedRetinaImageFiles;
   }
 
-  public void setSizeOfAllImagesInBytes(long sizeOfAllImagesInBytes) {
-    this.sizeOfAllImagesInBytes = sizeOfAllImagesInBytes;
+  public long getSizeOfAllImagesFilesInBytes() {
+    return sizeOfAllImagesFilesInBytes;
+  }
+
+  public void setSizeOfAllImagesFilesInBytes(long sizeOfAllImagesFilesInBytes) {
+    this.sizeOfAllImagesFilesInBytes = sizeOfAllImagesFilesInBytes;
   }
 }

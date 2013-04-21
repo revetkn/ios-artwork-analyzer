@@ -4,6 +4,7 @@
 
 	<!-- Directories -->
 	<property name="librarySourceDir" value="source" />	
+	<property name="dependenciesDir" value="dependencies" />
 	<property name="buildDir" value=".build" />
 	<property name="buildClassesDir" value="${buildDir}/classes" />
 	<property name="buildJavadocDir" value="${buildDir}/javadoc" />
@@ -12,12 +13,21 @@
 	<property name="javaVersion" value="1.6" />
 	<property name="javaDebug" value="true" />
 	<property name="javaDebugLevel" value="lines,vars,source" />
+	
+	<!-- Classpaths -->
+	<path id="compilationClasspath">
+		<fileset dir="${dependenciesDir}">
+			<include name="**/*.jar" />
+		</fileset>		
+	</path>	
 
 	<target name="compile" description="Compiles library code">
 		<mkdir dir="${buildClassesDir}" />
 		<echo message="Compiling..." />
 		<javac srcdir="${librarySourceDir}" destdir="${buildClassesDir}" source="${javaVersion}" target="${javaVersion}"
-			debug="${javaDebug}" debuglevel="${javaDebugLevel}" />
+			debug="${javaDebug}" debuglevel="${javaDebugLevel}">
+			<classpath refid="compilationClasspath"/>
+		</javac>
 	</target>
 
 	<target name="javadoc" description="Builds Javadoc">
@@ -28,6 +38,7 @@
 			<doctitle><![CDATA[<h1>iOS Artwork Analyzer ${libraryVersion}</h1>]]></doctitle>
 			<bottom><![CDATA[<i>iOS Artwork Analyzer ${libraryVersion}. Copyright &#169; 2013 Mark Allen. All Rights Reserved.</i>]]></bottom>
 			<link href="http://docs.oracle.com/javase/7/docs/api/" />
+			<classpath refid="compilationClasspath"/>
 		</javadoc>
 	</target>
 
