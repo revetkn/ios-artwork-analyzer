@@ -22,13 +22,62 @@
 
 package com.revetkn.ios.analyzer;
 
+import static java.util.Collections.emptySet;
+
 import java.io.File;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
  * @author <a href="http://revetkn.com">Mark Allen</a>
  */
 public class ArtworkAnalyzer {
+  /** Suffixes for files which may reference images. */
+  private static final Set<String> REFERENCING_FILE_SUFFIXES = new HashSet<String>() {
+    {
+      add(".h");
+      add(".m");
+      add(".pbxproj");
+      add(".xib");
+      add(".plist");
+      add(".html");
+      add(".strings");
+    }
+  };
+
+  /** Suffixes for image files we'd like to detect. */
+  private static final Set<String> IMAGE_FILE_SUFFIXES = new HashSet<String>() {
+    {
+      add(".png");
+    }
+  };
+
+  /** Apple-defined standard application images. */
+  private static final Set<String> STANDARD_APPLICATION_IMAGE_FILENAMES = new HashSet<String>() {
+    {
+      add("Default.png");
+      add("Default@2x.png");
+      add("Default-568h@2x.png");
+      add("Default-Landscape.png");
+      add("Default-Landscape@2x.png");
+      add("Default-Portrait.png");
+      add("Default-Portrait@2x.png");
+      add("Icon.png");
+      add("Icon@2x.png");
+      add("Icon-72.png");
+      add("Icon-72@2x.png");
+      add("Icon-Small-50.png");
+      add("Icon-Small-50@2x.png");
+      add("Icon-Small.png");
+      add("Icon-Small@2x.png");
+      add("iTunesArtwork");
+      add("iTunesArtwork@2x");
+    }
+  };
+
+  /** Directories to skip over when detecting images */
+  private static final Set<String> IGNORED_DIRECTORY_NAMES = emptySet();
+
   /**
    * Scans the given iOS project root directory and performs analysis on the contents of its artwork. This may take a
    * while for larger projects. All available CPU cores are utilized to perform parallel processing when possible.
@@ -42,23 +91,32 @@ public class ArtworkAnalyzer {
     throw new UnsupportedOperationException();
   }
 
-  /** For example, .h, .m, .xib */
-  public Set<String> textFileSuffixes() {
-    throw new UnsupportedOperationException();
+  /**
+   * @return Suffixes for files which may reference images. For example: .m, .xib, .pbxproj
+   */
+  public Set<String> referencingFileSuffixes() {
+    return REFERENCING_FILE_SUFFIXES;
   }
 
-  /** For example, .png */
+  /**
+   * @return Suffixes for image files we'd like to detect. For example: .png
+   */
   public Set<String> imageFileSuffixes() {
-    throw new UnsupportedOperationException();
+    return IMAGE_FILE_SUFFIXES;
   }
 
-  /** For example, Icon-72.png */
-  public Set<String> applicationImageFilenames() {
-    throw new UnsupportedOperationException();
+  /**
+   * @return Apple-defined standard application images. For example: Icon-72.png
+   */
+  public Set<String> standardApplicationImageFilenames() {
+    return STANDARD_APPLICATION_IMAGE_FILENAMES;
   }
 
-  /** For example, FacebookSDK.framework */
+  /**
+   * @return Directories to skip over when detecting images. For example: FacebookSDK.framework. Default behavior is to
+   *         not skip any directories.
+   */
   public Set<String> ignoredDirectoryNames() {
-    throw new UnsupportedOperationException();
+    return IGNORED_DIRECTORY_NAMES;
   }
 }
