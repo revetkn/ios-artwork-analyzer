@@ -22,11 +22,13 @@
 
 package com.revetkn.ios.analyzer;
 
+import static java.lang.String.format;
 import static java.util.Collections.emptySet;
 
 import java.io.File;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.logging.Logger;
 
 /**
  * @author <a href="http://revetkn.com">Mark Allen</a>
@@ -78,16 +80,35 @@ public class ArtworkAnalyzer {
   /** Directories to skip over when detecting images */
   private static final Set<String> IGNORED_DIRECTORY_NAMES = emptySet();
 
+  private static final Logger LOGGER = Logger.getLogger(ArtworkAnalyzer.class.getName());
+
   /**
    * Scans the given iOS project root directory and performs analysis on the contents of its artwork. This may take a
    * while for larger projects. All available CPU cores are utilized to perform parallel processing when possible.
    */
   public ApplicationArtwork extractApplicationArtwork(File projectRootDirectory) {
-    throw new UnsupportedOperationException();
+    if (projectRootDirectory == null)
+      throw new NullPointerException("The 'projectRootDirectory' parameter cannot be null.");
+    if (!projectRootDirectory.isDirectory())
+      throw new IllegalArgumentException(format("'%s' is a regular file - it must be a directory.",
+        projectRootDirectory));
+
+    LOGGER.fine("Starting...");
+
+    ApplicationArtwork applicationArtwork = new ApplicationArtwork();
+
+    return applicationArtwork;
   }
 
   /** Fails fast if you pass in an already-retina image or if an image is invalid */
   public void generateRetinaImages(Iterable<File> nonretinaImages, File outputDirectory) {
+    if (nonretinaImages == null)
+      throw new NullPointerException("The 'nonretinaImages' parameter cannot be null.");
+    if (outputDirectory == null)
+      throw new NullPointerException("The 'outputDirectory' parameter cannot be null.");
+    if (!outputDirectory.isDirectory())
+      throw new IllegalArgumentException(format("'%s' is a regular file - it must be a directory.", outputDirectory));
+
     throw new UnsupportedOperationException();
   }
 

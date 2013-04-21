@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="iOS Artwork Analyzer" default="javadoc">
+	<property name="libraryVersion" value="1.0" />
+
+	<!-- Directories -->
+	<property name="librarySourceDir" value="source" />	
+	<property name="buildDir" value=".build" />
+	<property name="buildClassesDir" value="${buildDir}/classes" />
+	<property name="buildJavadocDir" value="${buildDir}/javadoc" />
+
+	<!-- Java switches -->
+	<property name="javaVersion" value="1.6" />
+	<property name="javaDebug" value="true" />
+	<property name="javaDebugLevel" value="lines,vars,source" />
+
+	<target name="compile" description="Compiles library code">
+		<mkdir dir="${buildClassesDir}" />
+		<echo message="Compiling..." />
+		<javac srcdir="${librarySourceDir}" destdir="${buildClassesDir}" source="${javaVersion}" target="${javaVersion}"
+			debug="${javaDebug}" debuglevel="${javaDebugLevel}" />
+	</target>
+
+	<target name="javadoc" description="Builds Javadoc">
+		<echo message="Building Javadoc..." />
+		<mkdir dir="${buildJavadocDir}" />						
+		<javadoc destdir="${buildJavadocDir}" author="true" version="true" use="true" windowtitle="iOS Artwork Analyzer" access="public" linksource="yes">
+			<packageset dir="${librarySourceDir}" defaultexcludes="yes" />
+			<doctitle><![CDATA[<h1>iOS Artwork Analyzer ${libraryVersion}</h1>]]></doctitle>
+			<bottom><![CDATA[<i>iOS Artwork Analyzer ${libraryVersion}. Copyright &#169; 2013 Mark Allen. All Rights Reserved.</i>]]></bottom>
+			<link href="http://docs.oracle.com/javase/7/docs/api/" />
+		</javadoc>
+	</target>
+
+	<target name="clean" description="Gets rid of build artifacts">
+		<echo message="Cleaning build artifacts..." />
+		<mkdir dir="${buildDir}" />
+		<delete includeEmptyDirs="true">
+			<fileset dir="${buildDir}" includes="**/*" />
+		</delete>
+	</target>
+	
+</project>

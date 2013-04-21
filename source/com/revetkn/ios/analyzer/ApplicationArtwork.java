@@ -25,26 +25,28 @@ package com.revetkn.ios.analyzer;
 import java.io.File;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 /**
- * 
  * @author <a href="http://revetkn.com">Mark Allen</a>
  */
 public class ApplicationArtwork {
-  private SortedSet<File> allImages;
-  private SortedMap<File, SortedSet<File>> allImagesAndReferencingFiles;
-  private SortedSet<File> unreferencedImages;
-  private SortedSet<File> onlyProjectFileReferencedImages;
-  private SortedSet<File> retinaImages;
-  private SortedSet<File> nonretinaImages;
-  private SortedSet<File> nonretinaImagesMissingRetinaImages;
-  private SortedSet<File> retinaImagesMissingNonretinaImages;
-  private SortedSet<File> missingApplicationImages;
+  private SortedSet<File> allImages = new TreeSet<File>();
+  private SortedMap<File, SortedSet<File>> allImagesAndReferencingFiles = new TreeMap<File, SortedSet<File>>();
+  private SortedMap<File, ImageMetrics> allImageMetrics = new TreeMap<File, ImageMetrics>();
+  private SortedSet<File> unreferencedImages = new TreeSet<File>();
+  private SortedSet<File> onlyProjectFileReferencedImages = new TreeSet<File>();
+  private SortedSet<File> retinaImages = new TreeSet<File>();
+  private SortedSet<File> nonretinaImages = new TreeSet<File>();
+  private SortedSet<File> nonretinaImagesMissingRetinaImages = new TreeSet<File>();
+  private SortedSet<File> retinaImagesMissingNonretinaImages = new TreeSet<File>();
+  private SortedSet<File> missingApplicationImages = new TreeSet<File>();
 
   /** Example: background~iphone.png */
-  private SortedSet<File> imagesWithIncorrectDeviceSuffix;
+  private SortedSet<File> imagesWithIncorrectDeviceSuffix = new TreeSet<File>();
 
-  private SortedSet<File> incorrectlySizedRetinaImages;
+  private SortedSet<File> incorrectlySizedRetinaImages = new TreeSet<File>();
 
   private long sizeOfAllImagesInBytes;
 
@@ -62,6 +64,10 @@ public class ApplicationArtwork {
 
   public void setAllImagesAndReferencingFiles(SortedMap<File, SortedSet<File>> allImagesAndReferencingFiles) {
     this.allImagesAndReferencingFiles = allImagesAndReferencingFiles;
+  }
+
+  public SortedMap<File, ImageMetrics> getAllImageMetrics() {
+    return allImageMetrics;
   }
 
   public SortedSet<File> getUnreferencedImages() {
