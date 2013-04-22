@@ -41,14 +41,15 @@ public class ApplicationArtwork {
   private SortedSet<File> nonretinaImageFiles = new TreeSet<File>();
   private SortedSet<File> nonretinaImageFilesMissingRetinaImages = new TreeSet<File>();
   private SortedSet<File> retinaImageFilesMissingNonretinaImages = new TreeSet<File>();
-  private SortedSet<File> missingApplicationImageFiles = new TreeSet<File>();
+  private SortedSet<File> standardApplicationImageFiles = new TreeSet<File>();
+  private SortedSet<String> missingStandardApplicationImageFilenames = new TreeSet<String>();
 
   /** Example: background~iphone.png */
   private SortedSet<File> imageFilesWithIncorrectDeviceSuffix = new TreeSet<File>();
 
   private SortedSet<File> incorrectlySizedRetinaImageFiles = new TreeSet<File>();
 
-  private long sizeOfAllImagesFilesInBytes;
+  private double sizeOfAllImagesFilesInBytes;
 
   public SortedSet<File> getAllImageFiles() {
     return allImageFiles;
@@ -122,12 +123,20 @@ public class ApplicationArtwork {
     this.retinaImageFilesMissingNonretinaImages = retinaImageFilesMissingNonretinaImages;
   }
 
-  public SortedSet<File> getMissingApplicationImageFiles() {
-    return missingApplicationImageFiles;
+  public SortedSet<File> getStandardApplicationImageFiles() {
+    return standardApplicationImageFiles;
   }
 
-  public void setMissingApplicationImageFiles(SortedSet<File> missingApplicationImageFiles) {
-    this.missingApplicationImageFiles = missingApplicationImageFiles;
+  public void setStandardApplicationImageFiles(SortedSet<File> standardApplicationImageFiles) {
+    this.standardApplicationImageFiles = standardApplicationImageFiles;
+  }
+
+  public SortedSet<String> getMissingStandardApplicationImageFilenames() {
+    return missingStandardApplicationImageFilenames;
+  }
+
+  public void setMissingStandardApplicationImageFilenames(SortedSet<String> missingStandardApplicationImageFilenames) {
+    this.missingStandardApplicationImageFilenames = missingStandardApplicationImageFilenames;
   }
 
   public SortedSet<File> getImageFilesWithIncorrectDeviceSuffix() {
@@ -146,11 +155,11 @@ public class ApplicationArtwork {
     this.incorrectlySizedRetinaImageFiles = incorrectlySizedRetinaImageFiles;
   }
 
-  public long getSizeOfAllImagesFilesInBytes() {
+  public double getSizeOfAllImagesFilesInBytes() {
     return sizeOfAllImagesFilesInBytes;
   }
 
-  public void setSizeOfAllImagesFilesInBytes(long sizeOfAllImagesFilesInBytes) {
+  public void setSizeOfAllImagesFilesInBytes(double sizeOfAllImagesFilesInBytes) {
     this.sizeOfAllImagesFilesInBytes = sizeOfAllImagesFilesInBytes;
   }
 }

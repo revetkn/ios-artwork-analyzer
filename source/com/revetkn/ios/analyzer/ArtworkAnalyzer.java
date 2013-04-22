@@ -130,6 +130,10 @@ public class ArtworkAnalyzer {
     this.executorService = createExecutorService();
   }
 
+  public void shutdown() {
+    getExecutorService().shutdown();
+  }
+
   /**
    * Scans the given iOS project root directory and performs analysis on the contents of its artwork. This may take a
    * while for larger projects. All available CPU cores are utilized to perform parallel processing when possible.
@@ -167,10 +171,11 @@ public class ArtworkAnalyzer {
     try {
       ApplicationArtwork applicationArtwork = new ApplicationArtwork();
       applicationArtwork.setAllImageFiles(extractAllImageFiles(projectRootDirectory));
-      applicationArtwork.setAllImageFilesWithMetrics(extractImageMetrics(applicationArtwork.getAllImageFiles()));
 
-      discoverAndRecordImageReferences(projectRootDirectory, applicationArtwork, progressCallback);
+      detectImageMetrics(applicationArtwork);
+      detectImageReferences(projectRootDirectory, applicationArtwork, progressCallback);
       detectRetinaAndNonretinaImages(applicationArtwork);
+      detectStandardApplicationImages(applicationArtwork);
 
       applicationArtwork
         .setIncorrectlySizedRetinaImageFiles(extractIncorrectlySizedRetinaImageFiles(applicationArtwork));
@@ -284,9 +289,8 @@ public class ArtworkAnalyzer {
   }
 
   /** Modifies the passed-in {@code applicationArtwork} instance to include image reference data. */
-  protected void discoverAndRecordImageReferences(File projectRootDirectory,
-      final ApplicationArtwork applicationArtwork, final ArtworkExtractionProgressCallback progressCallback)
-      throws Exception {
+  protected void detectImageReferences(File projectRootDirectory, final ApplicationArtwork applicationArtwork,
+      final ArtworkExtractionProgressCallback progressCallback) throws Exception {
     final Map<File, String> contentsOfReferencingFiles = extractContentsOfReferencingFiles(projectRootDirectory);
     final SortedSet<File> unreferencedImageFiles = synchronizedSortedSet(new TreeSet<File>());
     final SortedSet<File> onlyProjectFileReferencedImageFiles = synchronizedSortedSet(new TreeSet<File>());
@@ -345,6 +349,28 @@ public class ArtworkAnalyzer {
     applicationArtwork.setOnlyProjectFileReferencedImageFiles(onlyProjectFileReferencedImageFiles);
   }
 
+  protected void detectStandardApplicationImages(ApplicationArtwork applicationArtwork) {
+    SortedSet<File> standardApplicationImageFiles = new TreeSet<File>();
+    SortedSet<String> missingStandardApplicationImageFilenames = new TreeSet<String>();
+
+    for (String standardImageFilename : STANDARD_APPLICATION_IMAGE_FILENAMES) {
+      boolean foundStandardImage = false;
+
+      for (File imageFile : applicationArtwork.getAllImageFiles()) {
+        if (imageFile.getName().equals(standardImageFilename)) {
+          standardApplicationImageFiles.add(imageFile);
+          foundStandardImage = true;
+        }
+      }
+
+      if (!foundStandardImage)
+        missingStandardApplicationImageFilenames.add(standardImageFilename);
+    }
+
+    applicationArtwork.setStandardApplicationImageFiles(standardApplicationImageFiles);
+    applicationArtwork.setMissingStandardApplicationImageFilenames(missingStandardApplicationImageFilenames);
+  }
+
   /** @return All image files in the project. */
   protected SortedSet<File> extractAllImageFiles(File projectRootDirectory) {
     SortedSet<File> allImageFiles = new TreeSet<File>();
@@ -364,13 +390,18 @@ public class ArtworkAnalyzer {
     return filenames;
   }
 
-  protected SortedMap<File, ImageMetrics> extractImageMetrics(Iterable<File> imageFiles) throws IOException {
-    SortedMap<File, ImageMetrics> imageFilesWithMetrics = new TreeMap<File, ImageMetrics>();
+  protected void detectImageMetrics(ApplicationArtwork applicationArtwork) throws IOException {
+    SortedMap<File, ImageMetrics> allImageFilesWithMetrics = new TreeMap<File, ImageMetrics>();
+    double sizeOfAllImagesFilesInBytes = 0;
 
-    for (File imageFile : imageFiles)
-      imageFilesWithMetrics.put(imageFile, ImageUtilities.extractImageMetrics(readFileToByteArray(imageFile)));
+    for (File imageFile : applicationArtwork.getAllImageFiles()) {
+      byte[] imageData = readFileToByteArray(imageFile);
+      sizeOfAllImagesFilesInBytes += imageData.length;
+      allImageFilesWithMetrics.put(imageFile, ImageUtilities.extractImageMetrics(imageData));
+    }
 
-    return imageFilesWithMetrics;
+    applicationArtwork.setAllImageFilesWithMetrics(allImageFilesWithMetrics);
+    applicationArtwork.setSizeOfAllImagesFilesInBytes(sizeOfAllImagesFilesInBytes);
   }
 
   protected SortedSet<File> extractIncorrectlySizedRetinaImageFiles(ApplicationArtwork applicationArtwork) {
@@ -482,7 +513,7 @@ public class ArtworkAnalyzer {
   protected ExecutorService createExecutorService() {
     int coreThreadCount = getRuntime().availableProcessors();
     int maximumThreadCount = coreThreadCount;
-    int unusedThreadTerminationTimeoutInSeconds = 30;
+    int unusedThreadTerminationTimeoutInSeconds = 5;
 
     ThreadPoolExecutor threadPoolExecutor =
         new ThreadPoolExecutor(coreThreadCount, maximumThreadCount, unusedThreadTerminationTimeoutInSeconds, SECONDS,
