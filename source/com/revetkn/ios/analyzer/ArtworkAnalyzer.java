@@ -22,6 +22,9 @@
 
 package com.revetkn.ios.analyzer;
 
+import static com.revetkn.ios.analyzer.ImageType.IMAGE_TYPE_PNG;
+import static com.revetkn.ios.analyzer.ImageUtilities.scaleImageUpToFit;
+import static java.io.File.separator;
 import static java.lang.Runtime.getRuntime;
 import static java.lang.String.format;
 import static java.util.Collections.emptySet;
@@ -31,6 +34,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.commons.io.FileUtils.listFiles;
 import static org.apache.commons.io.FileUtils.readFileToByteArray;
 import static org.apache.commons.io.FileUtils.readFileToString;
+import static org.apache.commons.io.FileUtils.writeByteArrayToFile;
 
 import java.io.File;
 import java.io.IOException;
@@ -50,7 +54,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Logger;
 
 import org.apache.commons.io.filefilter.NameFileFilter;
 import org.apache.commons.io.filefilter.NotFileFilter;
@@ -120,8 +123,6 @@ public class ArtworkAnalyzer {
   /** Directories to skip over when detecting images */
   private static final Set<String> IGNORED_DIRECTORY_NAMES = emptySet();
 
-  private static final Logger LOGGER = Logger.getLogger(ArtworkAnalyzer.class.getName());
-
   /**
    * Creates a new artwork analyzer.
    */
@@ -155,6 +156,8 @@ public class ArtworkAnalyzer {
       ArtworkExtractionProgressCallback progressCallback) {
     if (projectRootDirectory == null)
       throw new NullPointerException("The 'projectRootDirectory' parameter cannot be null.");
+    if (!projectRootDirectory.exists())
+      throw new IllegalArgumentException(format("Directory '%s' does not exist.", projectRootDirectory));
     if (!projectRootDirectory.isDirectory())
       throw new IllegalArgumentException(format("'%s' is a regular file - it must be a directory.",
         projectRootDirectory));
@@ -168,7 +171,6 @@ public class ArtworkAnalyzer {
 
       discoverAndRecordImageReferences(projectRootDirectory, applicationArtwork, progressCallback);
       detectRetinaAndNonretinaImages(applicationArtwork);
-      // TODO: complete
 
       applicationArtwork
         .setIncorrectlySizedRetinaImageFiles(extractIncorrectlySizedRetinaImageFiles(applicationArtwork));
@@ -177,6 +179,73 @@ public class ArtworkAnalyzer {
           .getAllImageFiles()));
 
       return applicationArtwork;
+    } catch (Throwable throwable) {
+      throw new ArtworkProcessingException(throwable);
+    }
+  }
+
+  public void generateRetinaImages(File projectRootDirectory, File outputDirectory, Set<File> nonretinaImageFiles) {
+    generateRetinaImages(projectRootDirectory, outputDirectory, nonretinaImageFiles,
+      new RetinaImageGenerationProgressCallback() {
+        @Override
+        public void generatedRetinaImage(File nonretinaSourceImageFile, File generatedRetinaImageFile,
+            int retinaImageFilesGenerated, int totalRetinaImageFilesToGenerate) {}
+      });
+  }
+
+  public void generateRetinaImages(final File projectRootDirectory, final File outputDirectory,
+      final Set<File> nonretinaImageFiles, final RetinaImageGenerationProgressCallback progressCallback) {
+    if (projectRootDirectory == null)
+      throw new NullPointerException("The 'projectRootDirectory' parameter cannot be null.");
+    if (!projectRootDirectory.exists())
+      throw new IllegalArgumentException(format("Directory '%s' does not exist.", projectRootDirectory));
+    if (!projectRootDirectory.isDirectory())
+      throw new IllegalArgumentException(format("'%s' is a regular file - it must be a directory.",
+        projectRootDirectory));
+    if (outputDirectory == null)
+      throw new NullPointerException("The 'outputDirectory' parameter cannot be null.");
+    if (outputDirectory.exists() && !outputDirectory.isDirectory())
+      throw new IllegalArgumentException(format("'%s' is a regular file - it must be a directory.", outputDirectory));
+    if (nonretinaImageFiles == null)
+      throw new NullPointerException("The 'nonretinaImageFiles' parameter cannot be null.");
+    if (progressCallback == null)
+      throw new NullPointerException("The 'progressCallback' parameter cannot be null.");
+
+    Set<Callable<Object>> retinaScalingTasks = new HashSet<Callable<Object>>();
+    final AtomicInteger imageFilesProcessed = new AtomicInteger(0);
+
+    for (final File nonretinaImageFile : nonretinaImageFiles) {
+      retinaScalingTasks.add(new Callable<Object>() {
+        @Override
+        public Object call() throws Exception {
+          byte[] imageFileData = readFileToByteArray(nonretinaImageFile);
+          ImageMetrics imageMetrics = ImageUtilities.extractImageMetrics(imageFileData);
+          int retinaWidth = imageMetrics.getWidth() * 2;
+          int retinaHeight = imageMetrics.getHeight() * 2;
+
+          byte[] retinaImageData = scaleImageUpToFit(imageFileData, retinaWidth, retinaHeight, IMAGE_TYPE_PNG);
+
+          String absoluteRetinaImageFilename = retinaImageFilename(nonretinaImageFile.getAbsolutePath());
+
+          int rootDirectoryPathLength = projectRootDirectory.getAbsolutePath().length();
+          String relativeRetinaImageFilename = absoluteRetinaImageFilename.substring(rootDirectoryPathLength + 1);
+
+          String retinaImageFilename = outputDirectory.getAbsolutePath() + separator + relativeRetinaImageFilename;
+
+          File retinaImageFile = new File(retinaImageFilename);
+          writeByteArrayToFile(retinaImageFile, retinaImageData);
+
+          progressCallback.generatedRetinaImage(nonretinaImageFile, retinaImageFile,
+            imageFilesProcessed.incrementAndGet(), nonretinaImageFiles.size());
+
+          return null;
+        }
+      });
+    }
+
+    try {
+      for (Future<Object> future : getExecutorService().invokeAll(retinaScalingTasks))
+        future.get();
     } catch (Throwable throwable) {
       throw new ArtworkProcessingException(throwable);
     }
@@ -232,8 +301,6 @@ public class ArtworkAnalyzer {
       imageReferenceProcessingTasks.add(new Callable<Object>() {
         @Override
         public Object call() throws Exception {
-          int currentImageFilesProcessed = imageFilesProcessed.incrementAndGet();
-
           String imageFilename = imageFile.getName();
           SortedSet<File> filesWhereImageIsReferenced = new TreeSet<File>();
           Set<String> imageFilenameVariants = imageFilenameVariants(imageFilename);
@@ -263,7 +330,7 @@ public class ArtworkAnalyzer {
           }
 
           progressCallback.onProcessedImageReferences(imageFile, filesWhereImageIsReferenced,
-            currentImageFilesProcessed, applicationArtwork.getAllImageFiles().size());
+            imageFilesProcessed.incrementAndGet(), applicationArtwork.getAllImageFiles().size());
 
           return null;
         }
@@ -276,18 +343,6 @@ public class ArtworkAnalyzer {
     applicationArtwork.setAllImageFilesAndReferencingFiles(allImageFilesAndReferencingFiles);
     applicationArtwork.setUnreferencedImageFiles(unreferencedImageFiles);
     applicationArtwork.setOnlyProjectFileReferencedImageFiles(onlyProjectFileReferencedImageFiles);
-  }
-
-  /** Fails fast if you pass in an already-retina image or if an image is invalid */
-  public void generateRetinaImages(Iterable<File> nonretinaImages, File outputDirectory) {
-    if (nonretinaImages == null)
-      throw new NullPointerException("The 'nonretinaImages' parameter cannot be null.");
-    if (outputDirectory == null)
-      throw new NullPointerException("The 'outputDirectory' parameter cannot be null.");
-    if (!outputDirectory.isDirectory())
-      throw new IllegalArgumentException(format("'%s' is a regular file - it must be a directory.", outputDirectory));
-
-    throw new UnsupportedOperationException();
   }
 
   /** @return All image files in the project. */
