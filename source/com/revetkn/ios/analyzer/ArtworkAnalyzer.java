@@ -24,7 +24,6 @@ package com.revetkn.ios.analyzer;
 
 import static java.lang.Runtime.getRuntime;
 import static java.lang.String.format;
-import static java.lang.System.currentTimeMillis;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.synchronizedSortedMap;
 import static java.util.Collections.synchronizedSortedSet;
@@ -137,18 +136,36 @@ public class ArtworkAnalyzer {
    *           If an error occurs during extraction/analysis.
    */
   public ApplicationArtwork extractApplicationArtwork(File projectRootDirectory) {
+    return extractApplicationArtwork(projectRootDirectory, new ArtworkExtractionProgressCallback() {
+      @Override
+      public void onProcessedImageReferences(File imageFile, SortedSet<File> filesWhereImageIsReferenced,
+          int currentImageFileNumber, int totalImageFiles) {}
+    });
+  }
+
+  /**
+   * Scans the given iOS project root directory and performs analysis on the contents of its artwork. This may take a
+   * while for larger projects. All available CPU cores are utilized to perform parallel processing when possible.
+   * 
+   * @throws ArtworkProcessingException
+   *           If an error occurs during extraction/analysis.
+   */
+  public ApplicationArtwork extractApplicationArtwork(File projectRootDirectory,
+      ArtworkExtractionProgressCallback progressCallback) {
     if (projectRootDirectory == null)
       throw new NullPointerException("The 'projectRootDirectory' parameter cannot be null.");
     if (!projectRootDirectory.isDirectory())
       throw new IllegalArgumentException(format("'%s' is a regular file - it must be a directory.",
         projectRootDirectory));
+    if (progressCallback == null)
+      throw new NullPointerException("The 'progressCallback' parameter cannot be null.");
 
     try {
       ApplicationArtwork applicationArtwork = new ApplicationArtwork();
       applicationArtwork.setAllImageFiles(extractAllImageFiles(projectRootDirectory));
 
-      discoverAndRecordImageReferences(projectRootDirectory, applicationArtwork);
-
+      discoverAndRecordImageReferences(projectRootDirectory, applicationArtwork, progressCallback);
+      detectRetinaAndNonretinaImages(applicationArtwork);
       // TODO: complete
 
       return applicationArtwork;
@@ -157,23 +174,51 @@ public class ArtworkAnalyzer {
     }
   }
 
+  protected void detectRetinaAndNonretinaImages(ApplicationArtwork applicationArtwork) {
+    SortedSet<String> allImageFilenames = extractFilenames(applicationArtwork.getAllImageFiles());
+    SortedSet<File> retinaImageFiles = new TreeSet<File>();
+    SortedSet<File> nonretinaImageFiles = new TreeSet<File>();
+    SortedSet<File> nonretinaImageFilesMissingRetinaImages = new TreeSet<File>();
+    SortedSet<File> retinaImageFilesMissingNonretinaImages = new TreeSet<File>();
+
+    for (String imageFilename : allImageFilenames) {
+      int lastIndexOf2x = imageFilename.lastIndexOf("@2x");
+
+      // Nonretina; search for a retina version
+      if (lastIndexOf2x == -1) {
+        nonretinaImageFiles.add(new File(imageFilename));
+
+        if (!allImageFilenames.contains(retinaImageFilename(imageFilename)))
+          nonretinaImageFilesMissingRetinaImages.add(new File(imageFilename));
+      } else {
+        retinaImageFiles.add(new File(imageFilename));
+
+        String nonretinaImageFilename = imageFilename.replace("@2x", "");
+
+        if (!allImageFilenames.contains(nonretinaImageFilename))
+          retinaImageFilesMissingNonretinaImages.add(new File(imageFilename));
+      }
+    }
+
+    applicationArtwork.setRetinaImageFiles(retinaImageFiles);
+    applicationArtwork.setNonretinaImageFiles(nonretinaImageFiles);
+    applicationArtwork.setNonretinaImageFilesMissingRetinaImages(nonretinaImageFilesMissingRetinaImages);
+    applicationArtwork.setRetinaImageFilesMissingNonretinaImages(retinaImageFilesMissingNonretinaImages);
+  }
+
   /** Modifies the passed-in {@code applicationArtwork} instance to include image reference data. */
-  protected void discoverAndRecordImageReferences(File projectRootDirectory, final ApplicationArtwork applicationArtwork)
+  protected void discoverAndRecordImageReferences(File projectRootDirectory,
+      final ApplicationArtwork applicationArtwork, final ArtworkExtractionProgressCallback progressCallback)
       throws Exception {
     final Map<File, String> contentsOfReferencingFiles = extractContentsOfReferencingFiles(projectRootDirectory);
-    final SortedSet<File> imagesFilesWithNoReferences = synchronizedSortedSet(new TreeSet<File>());
-    final SortedSet<File> imageFilesWithOnlyProjectFileReferences = synchronizedSortedSet(new TreeSet<File>());
+    final SortedSet<File> unreferencedImageFiles = synchronizedSortedSet(new TreeSet<File>());
+    final SortedSet<File> onlyProjectFileReferencedImageFiles = synchronizedSortedSet(new TreeSet<File>());
     final SortedMap<File, SortedSet<File>> allImageFilesAndReferencingFiles =
         synchronizedSortedMap(new TreeMap<File, SortedSet<File>>());
 
     final AtomicInteger imageFilesProcessed = new AtomicInteger(0);
 
-    LOGGER.fine(format("Going to examine references for %d image files...", applicationArtwork.getAllImageFiles()
-      .size()));
-
     Set<Callable<Object>> imageReferenceProcessingTasks = new HashSet<Callable<Object>>();
-
-    long time = currentTimeMillis();
 
     for (final File imageFile : applicationArtwork.getAllImageFiles()) {
       imageReferenceProcessingTasks.add(new Callable<Object>() {
@@ -200,18 +245,17 @@ public class ArtworkAnalyzer {
           }
 
           if (filesWhereImageIsReferenced.size() == 1
-              && "project.pbxproj".equals(filesWhereImageIsReferenced.first().getName()))
-            imageFilesWithOnlyProjectFileReferences.add(imageFile);
+              && "project.pbxproj".equals(filesWhereImageIsReferenced.first().getName().toLowerCase()))
+            onlyProjectFileReferencedImageFiles.add(imageFile);
 
           if (filesWhereImageIsReferenced.size() == 0) {
-            imagesFilesWithNoReferences.add(imageFile);
+            unreferencedImageFiles.add(imageFile);
           } else {
             allImageFilesAndReferencingFiles.put(imageFile, filesWhereImageIsReferenced);
           }
 
-          if (currentImageFilesProcessed % 50 == 0)
-            LOGGER.fine(format("Examined %d of %d.", currentImageFilesProcessed, applicationArtwork.getAllImageFiles()
-              .size()));
+          progressCallback.onProcessedImageReferences(imageFile, filesWhereImageIsReferenced,
+            currentImageFilesProcessed, applicationArtwork.getAllImageFiles().size());
 
           return null;
         }
@@ -222,11 +266,8 @@ public class ArtworkAnalyzer {
       future.get();
 
     applicationArtwork.setAllImageFilesAndReferencingFiles(allImageFilesAndReferencingFiles);
-
-    // TODO: set other properties
-
-    LOGGER.fine(format("Finished examining references for %d images in %.1f seconds.", applicationArtwork
-      .getAllImageFiles().size(), (currentTimeMillis() - time) / 1000f));
+    applicationArtwork.setUnreferencedImageFiles(unreferencedImageFiles);
+    applicationArtwork.setOnlyProjectFileReferencedImageFiles(onlyProjectFileReferencedImageFiles);
   }
 
   /** Fails fast if you pass in an already-retina image or if an image is invalid */
@@ -241,9 +282,7 @@ public class ArtworkAnalyzer {
     throw new UnsupportedOperationException();
   }
 
-  /**
-   * @return All image files in the project.
-   */
+  /** @return All image files in the project. */
   protected SortedSet<File> extractAllImageFiles(File projectRootDirectory) {
     SortedSet<File> allImageFiles = new TreeSet<File>();
 
@@ -255,9 +294,14 @@ public class ArtworkAnalyzer {
     return allImageFiles;
   }
 
-  /**
-   * @return Mapping of files that could potentially include image references -> their textual contents.
-   */
+  protected SortedSet<String> extractFilenames(Iterable<File> files) {
+    SortedSet<String> filenames = new TreeSet<String>();
+    for (File file : files)
+      filenames.add(file.getAbsolutePath());
+    return filenames;
+  }
+
+  protected/** @return Mapping of files that could potentially include image references -> their textual contents. */
   Map<File, String> extractContentsOfReferencingFiles(File projectRootDirectory) throws IOException {
     Map<File, String> referencingFilesToContents = new HashMap<File, String>();
 
@@ -317,6 +361,25 @@ public class ArtworkAnalyzer {
     filenameVariants.add(format("%s@2x~iphone.png", imageFilename));
 
     return filenameVariants;
+  }
+
+  protected String retinaImageFilename(String imageFilename) {
+    // If we're already a retina image, nothing to do
+    if (imageFilename.indexOf("@2x") != -1)
+      return imageFilename;
+
+    int lastIndexOfIpad = imageFilename.lastIndexOf("~ipad");
+    int lastIndexOfIphone = imageFilename.lastIndexOf("~iphone");
+    int replacementIndex = -1;
+
+    if (lastIndexOfIpad != -1)
+      replacementIndex = lastIndexOfIpad;
+    else if (lastIndexOfIphone != -1)
+      replacementIndex = lastIndexOfIphone;
+    else
+      replacementIndex = imageFilename.lastIndexOf(".png");
+
+    return format("%s@2x%s", imageFilename.substring(0, replacementIndex), imageFilename.substring(replacementIndex));
   }
 
   /**
