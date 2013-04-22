@@ -44,7 +44,7 @@ public class ApplicationArtwork {
   private SortedSet<File> missingApplicationImageFiles = new TreeSet<File>();
 
   /** Example: background~iphone.png */
-  private SortedSet<File> imagesFilesWithIncorrectDeviceSuffix = new TreeSet<File>();
+  private SortedSet<File> imageFilesWithIncorrectDeviceSuffix = new TreeSet<File>();
 
   private SortedSet<File> incorrectlySizedRetinaImageFiles = new TreeSet<File>();
 
@@ -130,12 +130,12 @@ public class ApplicationArtwork {
     this.missingApplicationImageFiles = missingApplicationImageFiles;
   }
 
-  public SortedSet<File> getImagesFilesWithIncorrectDeviceSuffix() {
-    return imagesFilesWithIncorrectDeviceSuffix;
+  public SortedSet<File> getImageFilesWithIncorrectDeviceSuffix() {
+    return imageFilesWithIncorrectDeviceSuffix;
   }
 
-  public void setImagesFilesWithIncorrectDeviceSuffix(SortedSet<File> imagesFilesWithIncorrectDeviceSuffix) {
-    this.imagesFilesWithIncorrectDeviceSuffix = imagesFilesWithIncorrectDeviceSuffix;
+  public void setImageFilesWithIncorrectDeviceSuffix(SortedSet<File> imagesFilesWithIncorrectDeviceSuffix) {
+    this.imageFilesWithIncorrectDeviceSuffix = imagesFilesWithIncorrectDeviceSuffix;
   }
 
   public SortedSet<File> getIncorrectlySizedRetinaImageFiles() {

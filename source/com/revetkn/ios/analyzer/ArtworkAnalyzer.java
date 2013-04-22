@@ -29,6 +29,7 @@ import static java.util.Collections.synchronizedSortedMap;
 import static java.util.Collections.synchronizedSortedSet;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.commons.io.FileUtils.listFiles;
+import static org.apache.commons.io.FileUtils.readFileToByteArray;
 import static org.apache.commons.io.FileUtils.readFileToString;
 
 import java.io.File;
@@ -163,10 +164,17 @@ public class ArtworkAnalyzer {
     try {
       ApplicationArtwork applicationArtwork = new ApplicationArtwork();
       applicationArtwork.setAllImageFiles(extractAllImageFiles(projectRootDirectory));
+      applicationArtwork.setAllImageFilesWithMetrics(extractImageMetrics(applicationArtwork.getAllImageFiles()));
 
       discoverAndRecordImageReferences(projectRootDirectory, applicationArtwork, progressCallback);
       detectRetinaAndNonretinaImages(applicationArtwork);
       // TODO: complete
+
+      applicationArtwork
+        .setIncorrectlySizedRetinaImageFiles(extractIncorrectlySizedRetinaImageFiles(applicationArtwork));
+      applicationArtwork
+        .setImageFilesWithIncorrectDeviceSuffix(extractImageFilesWithIncorrectDeviceSuffix(applicationArtwork
+          .getAllImageFiles()));
 
       return applicationArtwork;
     } catch (Throwable throwable) {
@@ -301,8 +309,39 @@ public class ArtworkAnalyzer {
     return filenames;
   }
 
-  protected/** @return Mapping of files that could potentially include image references -> their textual contents. */
-  Map<File, String> extractContentsOfReferencingFiles(File projectRootDirectory) throws IOException {
+  protected SortedMap<File, ImageMetrics> extractImageMetrics(Iterable<File> imageFiles) throws IOException {
+    SortedMap<File, ImageMetrics> imageFilesWithMetrics = new TreeMap<File, ImageMetrics>();
+
+    for (File imageFile : imageFiles)
+      imageFilesWithMetrics.put(imageFile, ImageUtilities.extractImageMetrics(readFileToByteArray(imageFile)));
+
+    return imageFilesWithMetrics;
+  }
+
+  protected SortedSet<File> extractIncorrectlySizedRetinaImageFiles(ApplicationArtwork applicationArtwork) {
+    SortedSet<File> incorrectlySizedRetinaImageFiles = new TreeSet<File>();
+
+    for (File retinaImageFile : applicationArtwork.getRetinaImageFiles()) {
+      ImageMetrics imageMetrics = applicationArtwork.getAllImageFilesWithMetrics().get(retinaImageFile);
+      if (imageMetrics.getWidth() % 2 != 0 || imageMetrics.getHeight() % 2 != 0)
+        incorrectlySizedRetinaImageFiles.add(retinaImageFile);
+    }
+
+    return incorrectlySizedRetinaImageFiles;
+  }
+
+  protected SortedSet<File> extractImageFilesWithIncorrectDeviceSuffix(Iterable<File> imageFiles) {
+    SortedSet<File> imageFilesWithIncorrectDeviceSuffix = new TreeSet<File>();
+
+    for (File imageFile : imageFiles)
+      if (imageFile.getName().contains("~iphone"))
+        imageFilesWithIncorrectDeviceSuffix.add(imageFile);
+
+    return imageFilesWithIncorrectDeviceSuffix;
+  }
+
+  /** @return Mapping of files that could potentially include image references -> their textual contents. */
+  protected Map<File, String> extractContentsOfReferencingFiles(File projectRootDirectory) throws IOException {
     Map<File, String> referencingFilesToContents = new HashMap<File, String>();
 
     for (File textFile : listFiles(projectRootDirectory, new SuffixFileFilter(new ArrayList<String>(
