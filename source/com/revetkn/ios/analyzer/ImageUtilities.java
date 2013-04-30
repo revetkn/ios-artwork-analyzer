@@ -24,13 +24,16 @@ package com.revetkn.ios.analyzer;
 
 import static java.awt.Color.WHITE;
 import static java.awt.Image.SCALE_SMOOTH;
-import static java.awt.image.BufferedImage.TYPE_INT_RGB;
+import static java.awt.RenderingHints.KEY_INTERPOLATION;
+import static java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR;
+import static java.awt.image.BufferedImage.TYPE_INT_ARGB;
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.String.format;
 import static java.util.logging.Level.FINE;
 import static javax.imageio.ImageIO.read;
 
-import java.awt.Graphics;
+import java.awt.AlphaComposite;
+import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -203,9 +206,11 @@ class ImageUtilities {
       Image tempImage = new ImageIcon(scaledImage).getImage();
 
       BufferedImage bufferedImage =
-          new BufferedImage(tempImage.getWidth(null), tempImage.getHeight(null), TYPE_INT_RGB);
+          new BufferedImage(tempImage.getWidth(null), tempImage.getHeight(null), TYPE_INT_ARGB);
 
-      Graphics g = bufferedImage.createGraphics();
+      Graphics2D g = bufferedImage.createGraphics();
+      g.setComposite(AlphaComposite.Src);
+      g.setRenderingHint(KEY_INTERPOLATION, VALUE_INTERPOLATION_BILINEAR);
       g.setColor(WHITE);
       g.fillRect(0, 0, tempImage.getWidth(null), tempImage.getHeight(null));
       g.drawImage(tempImage, 0, 0, null);
